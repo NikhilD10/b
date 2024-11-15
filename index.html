@@ -3,107 +3,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live City Cameras</title>
+    <title>Augmented Surveillance - Do We Own Ourselves?</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
+            background-color: #000;
+            color: #fff;
             display: flex;
-            flex-wrap: wrap;
+            flex-direction: column;
+            align-items: center;
             justify-content: center;
-            background-color: #f4f4f4;
+            height: 100vh;
         }
         h1 {
-            width: 100%;
             text-align: center;
-            padding: 20px;
-            background-color: #333;
             color: #fff;
+            margin: 20px 0;
         }
-        .camera-container {
-            margin: 10px;
-            width: 300px;
-            height: 200px;
-            border: 1px solid #ddd;
-            overflow: hidden;
+        .container {
             position: relative;
+            width: 800px;
+            max-width: 100%;
+            height: 450px;
+            border: 2px solid #fff;
+            overflow: hidden;
         }
-        .camera-container img {
+        iframe {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            border: none;
         }
-        .city-name {
+        .overlay {
             position: absolute;
-            bottom: 0;
+            top: 0;
+            left: 0;
             width: 100%;
-            text-align: center;
-            background-color: rgba(0, 0, 0, 0.5);
-            color: #fff;
-            font-size: 16px;
-            padding: 5px 0;
+            height: 100%;
+            pointer-events: none; /* Prevent interaction with the overlay */
+            z-index: 10;
         }
     </style>
 </head>
 <body>
-    <h1>Live City Cameras</h1>
-
-    <div class="camera-container">
-        <a href="https://www.skylinewebcams.com/en/webcam/italia/lazio/roma/piazza-di-spagna.html" target="_blank">
-            <img src="https://embed.skylinewebcams.com/img/205.jpg" alt="Piazza di Spagna - Rome">
-        </a>
-        <div class="city-name">Piazza di Spagna - Rome</div>
+    <h1>Augmented Surveillance: Do We Own Ourselves?</h1>
+    <div class="container">
+        <!-- Embedded YouTube Camera -->
+        <iframe src="https://www.youtube.com/embed/h2HXup8nA1I?si=hoztKe88XDjWrNpQ" 
+                title="YouTube video player" 
+                frameborder="0" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                referrerpolicy="strict-origin-when-cross-origin" 
+                allowfullscreen></iframe>
+        <!-- Canvas Overlay -->
+        <canvas class="overlay"></canvas>
     </div>
 
-    <div class="camera-container">
-        <a href="https://www.skylinewebcams.com/en/webcam/italia/lombardia/milano/duomo-milano.html" target="_blank">
-            <img src="https://embed.skylinewebcams.com/img/395.jpg" alt="Milan Cathedral">
-        </a>
-        <div class="city-name">Milan Cathedral</div>
-    </div>
+    <script>
+        // Select the canvas and set up the context
+        const canvas = document.querySelector('.overlay');
+        const ctx = canvas.getContext('2d');
 
-    <div class="camera-container">
-        <a href="https://www.skylinewebcams.com/en/webcam/italia/veneto/venezia/piazza-san-marco.html" target="_blank">
-            <img src="https://embed.skylinewebcams.com/img/522.jpg" alt="Piazza San Marco - Venice">
-        </a>
-        <div class="city-name">Piazza San Marco - Venice</div>
-    </div>
+        // Set canvas size to match the container
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = canvas.parentElement.clientHeight;
 
-    <div class="camera-container">
-        <a href="https://www.skylinewebcams.com/en/webcam/italia/lazio/roma/roma-colosseo.html" target="_blank">
-            <img src="https://embed.skylinewebcams.com/img/1151.jpg" alt="Rome - Colosseum">
-        </a>
-        <div class="city-name">Rome - Colosseum</div>
-    </div>
+        // Function to draw fake information boxes
+        function drawFakeInfo(x, y, info) {
+            ctx.fillStyle = "rgba(255, 0, 0, 0.8)";
+            ctx.font = "14px Arial";
+            ctx.fillRect(x, y, 180, 60); // Background for the info box
+            ctx.fillStyle = "#fff";
+            ctx.fillText(info, x + 10, y + 30); // Display text
+        }
 
-    <div class="camera-container">
-        <a href="https://www.skylinewebcams.com/en/webcam/italia/veneto/venezia/rialto-canal-grande.html" target="_blank">
-            <img src="https://embed.skylinewebcams.com/img/416.jpg" alt="Venice - Rialto Bridge">
-        </a>
-        <div class="city-name">Venice - Rialto Bridge</div>
-    </div>
+        // Simulated motion tracking points
+        const fakeData = [
+            { x: 100, y: 100, info: "Heart Rate: 75 bpm" },
+            { x: 300, y: 200, info: "Stress Level: Low" },
+            { x: 500, y: 350, info: "Emotion: Happy" },
+        ];
 
-    <div class="camera-container">
-        <a href="https://www.skylinewebcams.com/en/webcam/united-states/new-york/new-york/nyc-42th-street.html" target="_blank">
-            <img src="https://embed.skylinewebcams.com/img/978.jpg" alt="New York - 42nd Street">
-        </a>
-        <div class="city-name">New York - 42nd Street</div>
-    </div>
+        // Function to render overlays
+        function renderOverlays() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear previous frames
 
-    <div class="camera-container">
-        <a href="https://www.skylinewebcams.com/en/webcam/maldives/lhaviyani-atoll/kurendhoo/kuredu-island.html" target="_blank">
-            <img src="https://embed.skylinewebcams.com/img/989.jpg" alt="Kuredu Island Resort">
-        </a>
-        <div class="city-name">Kuredu Island Resort</div>
-    </div>
+            fakeData.forEach((data) => {
+                drawFakeInfo(data.x, data.y, data.info);
+            });
 
-    <div class="camera-container">
-        <a href="https://www.skylinewebcams.com/en/webcam/israel/jerusalem-district/jerusalem/western-wall.html" target="_blank">
-            <img src="https://embed.skylinewebcams.com/img/860.jpg" alt="Jerusalem - Western Wall">
-        </a>
-        <div class="city-name">Jerusalem - Western Wall</div>
-    </div>
+            requestAnimationFrame(renderOverlays); // Keep updating
+        }
 
+        // Start rendering overlays
+        renderOverlays();
+
+        // Update data positions and text every few seconds
+        setInterval(() => {
+            fakeData.forEach((data) => {
+                // Randomize positions
+                data.x = Math.random() * canvas.width;
+                data.y = Math.random() * canvas.height;
+
+                // Randomize info
+                const randomHeartRate = Math.floor(Math.random() * 40) + 60;
+                const stressLevels = ["Low", "Moderate", "High"];
+                const emotions = ["Happy", "Neutral", "Anxious"];
+
+                data.info = `Heart Rate: ${randomHeartRate} bpm\nStress Level: ${stressLevels[Math.floor(Math.random() * stressLevels.length)]}\nEmotion: ${emotions[Math.floor(Math.random() * emotions.length)]}`;
+            });
+        }, 2000); // Update every 2 seconds
+    </script>
 </body>
 </html>
