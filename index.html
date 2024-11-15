@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MoveNet Human Pose Detection with Augmented Data</title>
+    <title>MoveNet Human Pose Detection</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -20,8 +20,8 @@
         }
         .container {
             position: relative;
-            width: 1200px;
-            height: 675px;
+            width: 1200px; /* Increased width */
+            height: 675px; /* Increased height to maintain 16:9 aspect ratio */
             max-width: 100%;
             border: 2px solid #fff;
         }
@@ -47,20 +47,20 @@
     </style>
 </head>
 <body>
-    <h1>Human Pose Detection with Augmented Data</h1>
+    <h1>Real-Time Human Pose Detection with MoveNet</h1>
     <button id="startCapture">Start Detection</button>
     <div class="container">
-        <!-- Embedded Ice Skating Video -->
+        <!-- Embedded YouTube Video -->
         <iframe 
             src="https://www.youtube.com/embed/VVBU63T23j8?autoplay=1&mute=1"
-            title="YouTube Live Stream - Ice Skating"
+            title="YouTube Live Stream"
             frameborder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowfullscreen>
         </iframe>
 
         <!-- Captured Video Stream -->
-        <video id="capturedVideo" autoplay muted playsinline style="display: none;"></video>
+        <video id="capturedVideo" autoplay muted playsinline></video>
 
         <!-- Overlay Canvas -->
         <canvas id="overlay"></canvas>
@@ -80,7 +80,6 @@
 
         async function startScreenCapture() {
             try {
-                // Request user to capture a specific Chrome tab or application window
                 const stream = await navigator.mediaDevices.getDisplayMedia({
                     video: {
                         width: 1920, // Higher resolution for better detection
@@ -107,9 +106,9 @@
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
 
                 const poses = await detector.estimatePoses(video);
-                poses.forEach((pose, index) => {
-                    // Draw keypoints, bounding boxes, and augmented data
-                    drawPoseWithAugmentedData(pose, index);
+                poses.forEach(pose => {
+                    // Draw keypoints and bounding boxes
+                    drawPose(pose);
                 });
 
                 requestAnimationFrame(detectFrame);
@@ -118,11 +117,10 @@
             detectFrame();
         }
 
-        function drawPoseWithAugmentedData(pose, index) {
+        function drawPose(pose) {
             if (pose.keypoints) {
+                // Bounding Box
                 const keypoints = pose.keypoints.filter(kp => kp.score > 0.5);
-
-                // Draw bounding box
                 if (keypoints.length > 0) {
                     const minX = Math.min(...keypoints.map(kp => kp.x));
                     const minY = Math.min(...keypoints.map(kp => kp.y));
@@ -133,31 +131,14 @@
                     ctx.lineWidth = 2;
                     ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
 
-                    // Augmented fake data
-                    const fakeData = {
-                        heartRate: `${Math.floor(Math.random() * 40) + 60} bpm`,
-                        stressLevel: ["Low", "Moderate", "High"][Math.floor(Math.random() * 3)],
-                        emotion: ["Happy", "Neutral", "Anxious"][Math.floor(Math.random() * 3)],
-                    };
-
-                    // Display augmented data next to the bounding box
-                    ctx.fillStyle = "white";
-                    ctx.font = "14px Arial";
-                    ctx.fillText(`Person ${index + 1}`, minX, minY - 55);
-                    ctx.fillText(`Heart Rate: ${fakeData.heartRate}`, minX, minY - 40);
-                    ctx.fillText(`Stress Level: ${fakeData.stressLevel}`, minX, minY - 25);
-                    ctx.fillText(`Emotion: ${fakeData.emotion}`, minX, minY - 10);
+                    // Keypoints
+                    keypoints.forEach(({ x, y }) => {
+                        ctx.beginPath();
+                        ctx.arc(x, y, 5, 0, 2 * Math.PI);
+                        ctx.fillStyle = "blue";
+                        ctx.fill();
+                    });
                 }
-
-                // Draw keypoints
-                keypoints.forEach(({ x, y }) => {
-                    ctx.beginPath();
-                    ctx.arc(x, y, 5, 0, 2 * Math.PI);
-                    ctx.fillStyle = "blue";
-                    ctx.fill();
-                });
-
-                console.log("Drawing pose for person:", index);
             }
         }
 
