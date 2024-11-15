@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real-Time People Detection</title>
+    <title>Real Object Detection with Screen Capture</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -15,9 +15,9 @@
             justify-content: center;
             height: 100vh;
             background-color: #000;
+            color: #fff;
         }
         h1 {
-            color: #fff;
             margin-bottom: 20px;
         }
         .container {
@@ -25,8 +25,17 @@
             width: 800px;
             max-width: 100%;
             height: 450px;
+            border: 2px solid #fff;
         }
-        iframe, video, canvas {
+        iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        video, canvas {
             position: absolute;
             top: 0;
             left: 0;
@@ -37,13 +46,11 @@
             z-index: 10;
             pointer-events: none;
         }
-        iframe {
-            z-index: 1;
-        }
     </style>
 </head>
 <body>
-    <h1>People Detection Overlay</h1>
+    <h1>Real-Time Object Detection Overlay</h1>
+    <button id="startCapture">Start Detection</button>
     <div class="container">
         <!-- Embedded YouTube Video -->
         <iframe 
@@ -54,8 +61,8 @@
             allowfullscreen>
         </iframe>
 
-        <!-- Hidden Video Element (Proxy for Detection) -->
-        <video id="video" autoplay muted playsinline></video>
+        <!-- Captured Video Stream -->
+        <video id="capturedVideo" autoplay muted playsinline></video>
 
         <!-- Overlay Canvas -->
         <canvas id="overlay"></canvas>
@@ -65,42 +72,57 @@
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
     <script>
-        const video = document.getElementById('video');
+        const startCaptureButton = document.getElementById('startCapture');
+        const videoElement = document.getElementById('capturedVideo');
         const canvas = document.getElementById('overlay');
         const ctx = canvas.getContext('2d');
 
         canvas.width = canvas.parentElement.clientWidth;
         canvas.height = canvas.parentElement.clientHeight;
 
-        async function setupCamera() {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: { width: 800, height: 450 },
-            });
-            video.srcObject = stream;
-            return new Promise((resolve) => {
-                video.onloadedmetadata = () => resolve(video);
-            });
+        async function startScreenCapture() {
+            try {
+                // Prompt user to capture their screen
+                const stream = await navigator.mediaDevices.getDisplayMedia({
+                    video: {
+                        width: 1280,
+                        height: 720,
+                    },
+                });
+
+                // Play the captured stream in a hidden video element
+                videoElement.srcObject = stream;
+
+                // Start object detection
+                startObjectDetection(videoElement);
+            } catch (err) {
+                console.error("Error accessing screen capture:", err);
+            }
         }
 
-        async function detectPeople() {
+        async function startObjectDetection(video) {
+            // Load the CocoSSD model
             const model = await cocoSsd.load();
-            console.log('Model Loaded');
+            console.log('CocoSSD Model Loaded');
 
             function detectFrame() {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear previous frame
 
-                model.detect(video).then((predictions) => {
-                    predictions.forEach((prediction) => {
+                model.detect(video).then(predictions => {
+                    predictions.forEach(prediction => {
                         if (prediction.class === 'person' && prediction.score > 0.5) {
                             const [x, y, width, height] = prediction.bbox;
-                            ctx.strokeStyle = 'red';
+
+                            // Draw bounding box
+                            ctx.strokeStyle = "red";
                             ctx.lineWidth = 2;
                             ctx.strokeRect(x, y, width, height);
 
-                            ctx.fillStyle = 'red';
-                            ctx.font = '16px Arial';
+                            // Draw label
+                            ctx.fillStyle = "red";
+                            ctx.font = "16px Arial";
                             ctx.fillText(
-                                `Person (${Math.round(prediction.score * 100)}%)`,
+                                `${prediction.class} (${Math.round(prediction.score * 100)}%)`,
                                 x,
                                 y > 10 ? y - 5 : y + 15
                             );
@@ -111,10 +133,11 @@
                 requestAnimationFrame(detectFrame);
             }
 
-            detectFrame();
+            detectFrame(); // Start the detection loop
         }
 
-        setupCamera().then(detectPeople);
+        // Attach event listener to the button
+        startCaptureButton.addEventListener('click', startScreenCapture);
     </script>
 </body>
 </html>
