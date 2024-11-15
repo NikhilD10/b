@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enhanced Motion Tracking with Augmented Data</title>
+    <title>MoveNet Human Pose Detection</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -20,11 +20,10 @@
         }
         .container {
             position: relative;
-            width: 1200px;
-            height: 675px;
+            width: 1200px; /* Increased width */
+            height: 675px; /* Increased height to maintain 16:9 aspect ratio */
             max-width: 100%;
             border: 2px solid #fff;
-            overflow: hidden;
         }
         iframe {
             position: absolute;
@@ -48,12 +47,12 @@
     </style>
 </head>
 <body>
-    <h1>Motion Tracking with Augmented Data</h1>
+    <h1>Real-Time Human Pose Detection with MoveNet</h1>
     <button id="startCapture">Start Detection</button>
     <div class="container">
         <!-- Embedded YouTube Video -->
         <iframe 
-            src="https://www.youtube.com/embed/3LXQWU67Ufk?autoplay=1&mute=1"
+            src="https://www.youtube.com/embed/VVBU63T23j8?autoplay=1&mute=1"
             title="YouTube Live Stream"
             frameborder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -61,7 +60,7 @@
         </iframe>
 
         <!-- Captured Video Stream -->
-        <video id="capturedVideo" autoplay muted playsinline style="display: none;"></video>
+        <video id="capturedVideo" autoplay muted playsinline></video>
 
         <!-- Overlay Canvas -->
         <canvas id="overlay"></canvas>
@@ -81,42 +80,35 @@
 
         async function startScreenCapture() {
             try {
-                // Request user to capture a specific Chrome tab or application window
                 const stream = await navigator.mediaDevices.getDisplayMedia({
-                    video: { width: 1920, height: 1080, frameRate: 30 }
+                    video: {
+                        width: 1920, // Higher resolution for better detection
+                        height: 1080,
+                    },
                 });
 
                 videoElement.srcObject = stream;
-                videoElement.style.display = "block"; // Show the hidden video element for processing
 
-                videoElement.onloadeddata = () => console.log("Video feed loaded successfully");
-
-                // Start multipose detection with the video feed
-                startMultiposeDetection(videoElement);
+                // Start pose detection
+                startPoseDetection(videoElement);
             } catch (err) {
                 console.error("Error accessing screen capture:", err);
             }
         }
 
-        async function startMultiposeDetection(video) {
-            // Use MULTIPOSE_LIGHTNING model for multiperson detection
-            const detectorConfig = { modelType: poseDetection.movenet.modelType.MULTIPOSE_LIGHTNING };
+        async function startPoseDetection(video) {
+            // Load the MoveNet model
+            const detectorConfig = { modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING };
             const detector = await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet, detectorConfig);
-            console.log("MoveNet Multipose Model Loaded");
+            console.log('MoveNet Model Loaded');
 
             async function detectFrame() {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                // Draw video feed on the canvas to display it while processing
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
                 const poses = await detector.estimatePoses(video);
-                console.log("Poses detected:", poses);
-
-                poses.forEach((pose, index) => {
-                    if (pose.keypoints) {
-                        drawPoseWithAugmentedData(pose, index);
-                    }
+                poses.forEach(pose => {
+                    // Draw keypoints and bounding boxes
+                    drawPose(pose);
                 });
 
                 requestAnimationFrame(detectFrame);
@@ -125,43 +117,32 @@
             detectFrame();
         }
 
-        function drawPoseWithAugmentedData(pose, index) {
-            const keypoints = pose.keypoints.filter(kp => kp.score > 0.5);
+        function drawPose(pose) {
+            if (pose.keypoints) {
+                // Bounding Box
+                const keypoints = pose.keypoints.filter(kp => kp.score > 0.5);
+                if (keypoints.length > 0) {
+                    const minX = Math.min(...keypoints.map(kp => kp.x));
+                    const minY = Math.min(...keypoints.map(kp => kp.y));
+                    const maxX = Math.max(...keypoints.map(kp => kp.x));
+                    const maxY = Math.max(...keypoints.map(kp => kp.y));
 
-            if (keypoints.length > 0) {
-                const minX = Math.min(...keypoints.map(kp => kp.x));
-                const minY = Math.min(...keypoints.map(kp => kp.y));
-                const maxX = Math.max(...keypoints.map(kp => kp.x));
-                const maxY = Math.max(...keypoints.map(kp => kp.y));
+                    ctx.strokeStyle = "red";
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
 
-                ctx.strokeStyle = "red";
-                ctx.lineWidth = 2;
-                ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
-
-                const fakeData = {
-                    heartRate: `${Math.floor(Math.random() * 40) + 60} bpm`,
-                    stressLevel: ["Low", "Moderate", "High"][Math.floor(Math.random() * 3)],
-                    emotion: ["Happy", "Neutral", "Anxious"][Math.floor(Math.random() * 3)],
-                };
-
-                ctx.fillStyle = "white";
-                ctx.font = "14px Arial";
-                ctx.fillText(`Person ${index + 1}`, minX, minY - 55);
-                ctx.fillText(`Heart Rate: ${fakeData.heartRate}`, minX, minY - 40);
-                ctx.fillText(`Stress Level: ${fakeData.stressLevel}`, minX, minY - 25);
-                ctx.fillText(`Emotion: ${fakeData.emotion}`, minX, minY - 10);
+                    // Keypoints
+                    keypoints.forEach(({ x, y }) => {
+                        ctx.beginPath();
+                        ctx.arc(x, y, 5, 0, 2 * Math.PI);
+                        ctx.fillStyle = "blue";
+                        ctx.fill();
+                    });
+                }
             }
-
-            keypoints.forEach(({ x, y }) => {
-                ctx.beginPath();
-                ctx.arc(x, y, 5, 0, 2 * Math.PI);
-                ctx.fillStyle = "blue";
-                ctx.fill();
-            });
-
-            console.log("Drawing pose for person:", index);
         }
 
+        // Attach event listener to the button
         startCaptureButton.addEventListener('click', startScreenCapture);
     </script>
 </body>
