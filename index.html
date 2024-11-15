@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MoveNet Multipose Debugging</title>
+    <title>Enhanced Motion Tracking with Augmented Data</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -24,6 +24,7 @@
             height: 675px;
             max-width: 100%;
             border: 2px solid #fff;
+            overflow: hidden;
         }
         iframe {
             position: absolute;
@@ -47,20 +48,26 @@
     </style>
 </head>
 <body>
-    <h1>Debugging MoveNet Multipose Detection</h1>
+    <h1>Motion Tracking with Augmented Data</h1>
     <button id="startCapture">Start Detection</button>
     <div class="container">
+        <!-- Embedded YouTube Video -->
         <iframe 
-            src="https://www.youtube.com/embed/VVBU63T23j8?autoplay=1&mute=1"
+            src="https://www.youtube.com/embed/3LXQWU67Ufk?autoplay=1&mute=1"
             title="YouTube Live Stream"
             frameborder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowfullscreen>
         </iframe>
-        <video id="capturedVideo" autoplay muted playsinline></video>
+
+        <!-- Captured Video Stream -->
+        <video id="capturedVideo" autoplay muted playsinline style="display: none;"></video>
+
+        <!-- Overlay Canvas -->
         <canvas id="overlay"></canvas>
     </div>
 
+    <!-- TensorFlow.js and Pose Detection -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
     <script>
@@ -74,14 +81,17 @@
 
         async function startScreenCapture() {
             try {
+                // Request user to capture a specific Chrome tab or application window
                 const stream = await navigator.mediaDevices.getDisplayMedia({
-                    video: { width: 1920, height: 1080, frameRate: 30 },
+                    video: { width: 1920, height: 1080, frameRate: 30 }
                 });
 
                 videoElement.srcObject = stream;
+                videoElement.style.display = "block"; // Show the hidden video element for processing
 
                 videoElement.onloadeddata = () => console.log("Video feed loaded successfully");
 
+                // Start multipose detection with the video feed
                 startMultiposeDetection(videoElement);
             } catch (err) {
                 console.error("Error accessing screen capture:", err);
@@ -89,15 +99,15 @@
         }
 
         async function startMultiposeDetection(video) {
+            // Use MULTIPOSE_LIGHTNING model for multiperson detection
             const detectorConfig = { modelType: poseDetection.movenet.modelType.MULTIPOSE_LIGHTNING };
             const detector = await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet, detectorConfig);
             console.log("MoveNet Multipose Model Loaded");
 
             async function detectFrame() {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-                console.log("Canvas cleared");
 
-                // Draw video feed for debugging
+                // Draw video feed on the canvas to display it while processing
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
                 const poses = await detector.estimatePoses(video);
