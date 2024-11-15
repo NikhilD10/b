@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real Motion Detection with Augmented Overlays</title>
+    <title>Motion Detection Overlay</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -12,45 +12,48 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: center;
+            height: 100vh;
             background-color: #000;
-            color: #fff;
         }
         h1 {
             color: #fff;
-            margin-top: 20px;
         }
         .container {
             position: relative;
             width: 800px;
             max-width: 100%;
             height: 450px;
-            overflow: hidden;
         }
-        video, canvas {
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        canvas {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-        }
-        canvas {
             pointer-events: none;
             z-index: 10;
         }
     </style>
 </head>
 <body>
-    <h1>Real Motion Detection: Do We Own Ourselves?</h1>
+    <h1>Motion Detection Overlay on Embedded Video</h1>
     <div class="container">
-        <!-- Live YouTube Stream -->
+        <!-- Embedded YouTube Video -->
         <iframe 
-            src="https://www.youtube.com/embed/h2HXup8nA1I?si=hoztKe88XDjWrNpQ" 
-            width="800" 
-            height="450" 
-            frameborder="0" 
-            allowfullscreen></iframe>
-        
-        <!-- Overlay Canvas -->
+            src="https://www.youtube.com/embed/h2HXup8nA1I?autoplay=1&mute=1"
+            title="YouTube video player"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen>
+        </iframe>
+
+        <!-- Canvas Overlay -->
         <canvas id="overlay"></canvas>
     </div>
 
@@ -61,10 +64,11 @@
         const canvas = document.getElementById('overlay');
         const ctx = canvas.getContext('2d');
 
+        // Set the canvas size to match the iframe's dimensions
         canvas.width = canvas.parentElement.clientWidth;
         canvas.height = canvas.parentElement.clientHeight;
 
-        // Initialize Pose Detection Model
+        // Load Pose Detection Model
         async function loadPoseModel() {
             const detectorConfig = {
                 modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
@@ -76,44 +80,49 @@
             return detector;
         }
 
-        async function detectPose(detector) {
-            const video = document.createElement('video');
-            video.srcObject = await navigator.mediaDevices.getUserMedia({
-                video: true,
-            });
-            video.play();
+        // Simulate Pose Detection on Canvas Overlay
+        async function simulateTracking(detector) {
+            const fakeData = [
+                { x: 100, y: 100, info: "Heart Rate: 75 bpm" },
+                { x: 300, y: 200, info: "Stress Level: Moderate" },
+                { x: 500, y: 350, info: "Emotion: Happy" },
+            ];
 
-            video.addEventListener('loadeddata', async () => {
-                while (true) {
-                    const poses = await detector.estimatePoses(video);
+            function drawFakeInfo(x, y, info) {
+                ctx.fillStyle = "rgba(255, 0, 0, 0.8)";
+                ctx.fillRect(x, y, 150, 50);
+                ctx.fillStyle = "#fff";
+                ctx.font = "14px Arial";
+                ctx.fillText(info, x + 10, y + 25);
+            }
 
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+            function renderOverlay() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                    poses.forEach(pose => {
-                        // Draw keypoints and augment data
-                        pose.keypoints.forEach(keypoint => {
-                            const { x, y, score } = keypoint;
-                            if (score > 0.5) {
-                                ctx.beginPath();
-                                ctx.arc(x, y, 5, 0, 2 * Math.PI);
-                                ctx.fillStyle = 'red';
-                                ctx.fill();
+                // Fake Tracking Data
+                fakeData.forEach(({ x, y, info }) => {
+                    drawFakeInfo(x, y, info);
+                });
 
-                                // Display augmented info near keypoints
-                                ctx.fillStyle = 'white';
-                                ctx.fillText('Analyzing...', x + 10, y - 10);
-                            }
-                        });
-                    });
+                // Update fake positions for movement
+                fakeData.forEach((point) => {
+                    point.x += (Math.random() - 0.5) * 10;
+                    point.y += (Math.random() - 0.5) * 10;
 
-                    await tf.nextFrame();
-                }
-            });
+                    // Keep points within bounds
+                    point.x = Math.max(0, Math.min(canvas.width - 150, point.x));
+                    point.y = Math.max(0, Math.min(canvas.height - 50, point.y));
+                });
+
+                requestAnimationFrame(renderOverlay);
+            }
+
+            renderOverlay();
         }
 
         (async () => {
             const detector = await loadPoseModel();
-            detectPose(detector);
+            simulateTracking(detector);
         })();
     </script>
 </body>
