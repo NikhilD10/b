@@ -3,117 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Augmented Surveillance - Do We Own Ourselves?</title>
+    <title>Real Motion Detection with Augmented Overlays</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #000;
-            color: #fff;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            height: 100vh;
+            background-color: #000;
+            color: #fff;
         }
         h1 {
-            text-align: center;
             color: #fff;
-            margin: 20px 0;
+            margin-top: 20px;
         }
         .container {
             position: relative;
             width: 800px;
             max-width: 100%;
             height: 450px;
-            border: 2px solid #fff;
             overflow: hidden;
         }
-        iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-        .overlay {
+        video, canvas {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            pointer-events: none; /* Prevent interaction with the overlay */
+        }
+        canvas {
+            pointer-events: none;
             z-index: 10;
         }
     </style>
 </head>
 <body>
-    <h1>Augmented Surveillance: Do We Own Ourselves?</h1>
+    <h1>Real Motion Detection: Do We Own Ourselves?</h1>
     <div class="container">
-        <!-- Embedded YouTube Camera -->
-        <iframe src="https://www.youtube.com/embed/h2HXup8nA1I?si=hoztKe88XDjWrNpQ" 
-                title="YouTube video player" 
-                frameborder="0" 
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-                referrerpolicy="strict-origin-when-cross-origin" 
-                allowfullscreen></iframe>
-        <!-- Canvas Overlay -->
-        <canvas class="overlay"></canvas>
+        <!-- Live YouTube Stream -->
+        <iframe 
+            src="https://www.youtube.com/embed/h2HXup8nA1I?si=hoztKe88XDjWrNpQ" 
+            width="800" 
+            height="450" 
+            frameborder="0" 
+            allowfullscreen></iframe>
+        
+        <!-- Overlay Canvas -->
+        <canvas id="overlay"></canvas>
     </div>
 
+    <!-- TensorFlow.js and Pose Detection -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
     <script>
-        // Select the canvas and set up the context
-        const canvas = document.querySelector('.overlay');
+        const canvas = document.getElementById('overlay');
         const ctx = canvas.getContext('2d');
 
-        // Set canvas size to match the container
         canvas.width = canvas.parentElement.clientWidth;
         canvas.height = canvas.parentElement.clientHeight;
 
-        // Function to draw fake information boxes
-        function drawFakeInfo(x, y, info) {
-            ctx.fillStyle = "rgba(255, 0, 0, 0.8)";
-            ctx.font = "14px Arial";
-            ctx.fillRect(x, y, 180, 60); // Background for the info box
-            ctx.fillStyle = "#fff";
-            ctx.fillText(info, x + 10, y + 30); // Display text
+        // Initialize Pose Detection Model
+        async function loadPoseModel() {
+            const detectorConfig = {
+                modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
+            };
+            const detector = await poseDetection.createDetector(
+                poseDetection.SupportedModels.MoveNet,
+                detectorConfig
+            );
+            return detector;
         }
 
-        // Simulated motion tracking points
-        const fakeData = [
-            { x: 100, y: 100, info: "Heart Rate: 75 bpm" },
-            { x: 300, y: 200, info: "Stress Level: Low" },
-            { x: 500, y: 350, info: "Emotion: Happy" },
-        ];
-
-        // Function to render overlays
-        function renderOverlays() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear previous frames
-
-            fakeData.forEach((data) => {
-                drawFakeInfo(data.x, data.y, data.info);
+        async function detectPose(detector) {
+            const video = document.createElement('video');
+            video.srcObject = await navigator.mediaDevices.getUserMedia({
+                video: true,
             });
+            video.play();
 
-            requestAnimationFrame(renderOverlays); // Keep updating
+            video.addEventListener('loadeddata', async () => {
+                while (true) {
+                    const poses = await detector.estimatePoses(video);
+
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                    poses.forEach(pose => {
+                        // Draw keypoints and augment data
+                        pose.keypoints.forEach(keypoint => {
+                            const { x, y, score } = keypoint;
+                            if (score > 0.5) {
+                                ctx.beginPath();
+                                ctx.arc(x, y, 5, 0, 2 * Math.PI);
+                                ctx.fillStyle = 'red';
+                                ctx.fill();
+
+                                // Display augmented info near keypoints
+                                ctx.fillStyle = 'white';
+                                ctx.fillText('Analyzing...', x + 10, y - 10);
+                            }
+                        });
+                    });
+
+                    await tf.nextFrame();
+                }
+            });
         }
 
-        // Start rendering overlays
-        renderOverlays();
-
-        // Update data positions and text every few seconds
-        setInterval(() => {
-            fakeData.forEach((data) => {
-                // Randomize positions
-                data.x = Math.random() * canvas.width;
-                data.y = Math.random() * canvas.height;
-
-                // Randomize info
-                const randomHeartRate = Math.floor(Math.random() * 40) + 60;
-                const stressLevels = ["Low", "Moderate", "High"];
-                const emotions = ["Happy", "Neutral", "Anxious"];
-
-                data.info = `Heart Rate: ${randomHeartRate} bpm\nStress Level: ${stressLevels[Math.floor(Math.random() * stressLevels.length)]}\nEmotion: ${emotions[Math.floor(Math.random() * emotions.length)]}`;
-            });
-        }, 2000); // Update every 2 seconds
+        (async () => {
+            const detector = await loadPoseModel();
+            detectPose(detector);
+        })();
     </script>
 </body>
 </html>
