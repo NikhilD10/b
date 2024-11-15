@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Improved Object Detection</title>
+    <title>MoveNet Human Pose Detection</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -47,7 +47,7 @@
     </style>
 </head>
 <body>
-    <h1>Improved Real-Time Detection</h1>
+    <h1>Real-Time Human Pose Detection with MoveNet</h1>
     <button id="startCapture">Start Detection</button>
     <div class="container">
         <!-- Embedded YouTube Video -->
@@ -66,9 +66,9 @@
         <canvas id="overlay"></canvas>
     </div>
 
-    <!-- TensorFlow.js and Object Detection -->
+    <!-- TensorFlow.js and Pose Detection -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
     <script>
         const startCaptureButton = document.getElementById('startCapture');
         const videoElement = document.getElementById('capturedVideo');
@@ -89,47 +89,57 @@
 
                 videoElement.srcObject = stream;
 
-                // Start object detection
-                startObjectDetection(videoElement);
+                // Start pose detection
+                startPoseDetection(videoElement);
             } catch (err) {
                 console.error("Error accessing screen capture:", err);
             }
         }
 
-        async function startObjectDetection(video) {
-            const model = await cocoSsd.load();
-            console.log('CocoSSD Model Loaded');
+        async function startPoseDetection(video) {
+            // Load the MoveNet model
+            const detectorConfig = { modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING };
+            const detector = await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet, detectorConfig);
+            console.log('MoveNet Model Loaded');
 
-            function detectFrame() {
+            async function detectFrame() {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                model.detect(video).then(predictions => {
-                    predictions.forEach(prediction => {
-                        // Lower detection threshold to 30%
-                        if (prediction.class === 'person' && prediction.score > 0.3) {
-                            const [x, y, width, height] = prediction.bbox;
-
-                            // Draw bounding box
-                            ctx.strokeStyle = "red";
-                            ctx.lineWidth = 2;
-                            ctx.strokeRect(x, y, width, height);
-
-                            // Draw label
-                            ctx.fillStyle = "red";
-                            ctx.font = "16px Arial";
-                            ctx.fillText(
-                                `${prediction.class} (${Math.round(prediction.score * 100)}%)`,
-                                x,
-                                y > 10 ? y - 5 : y + 15
-                            );
-                        }
-                    });
+                const poses = await detector.estimatePoses(video);
+                poses.forEach(pose => {
+                    // Draw keypoints and bounding boxes
+                    drawPose(pose);
                 });
 
                 requestAnimationFrame(detectFrame);
             }
 
             detectFrame();
+        }
+
+        function drawPose(pose) {
+            if (pose.keypoints) {
+                // Bounding Box
+                const keypoints = pose.keypoints.filter(kp => kp.score > 0.5);
+                if (keypoints.length > 0) {
+                    const minX = Math.min(...keypoints.map(kp => kp.x));
+                    const minY = Math.min(...keypoints.map(kp => kp.y));
+                    const maxX = Math.max(...keypoints.map(kp => kp.x));
+                    const maxY = Math.max(...keypoints.map(kp => kp.y));
+
+                    ctx.strokeStyle = "red";
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
+
+                    // Keypoints
+                    keypoints.forEach(({ x, y }) => {
+                        ctx.beginPath();
+                        ctx.arc(x, y, 5, 0, 2 * Math.PI);
+                        ctx.fillStyle = "blue";
+                        ctx.fill();
+                    });
+                }
+            }
         }
 
         // Attach event listener to the button
