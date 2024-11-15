@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Improved MoveNet Detection</title>
+    <title>MoveNet Multipose Detection with Augmented Data</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -47,7 +47,7 @@
     </style>
 </head>
 <body>
-    <h1>Improved Real-Time Detection</h1>
+    <h1>Multipose Detection with Augmented Data</h1>
     <button id="startCapture">Start Detection</button>
     <div class="container">
         <!-- Embedded YouTube Video -->
@@ -81,31 +81,30 @@
         async function startScreenCapture() {
             try {
                 const stream = await navigator.mediaDevices.getDisplayMedia({
-                    video: { width: 1920, height: 1080, frameRate: 30 }, // High resolution
+                    video: { width: 1920, height: 1080, frameRate: 30 }, // High resolution for detection
                 });
 
                 videoElement.srcObject = stream;
 
-                // Start pose detection
-                startPoseDetection(videoElement);
+                // Start multipose detection
+                startMultiposeDetection(videoElement);
             } catch (err) {
                 console.error("Error accessing screen capture:", err);
             }
         }
 
-        async function startPoseDetection(video) {
-            // Use SINGLEPOSE_THUNDER for higher accuracy
-            const detectorConfig = { modelType: poseDetection.movenet.modelType.SINGLEPOSE_THUNDER };
+        async function startMultiposeDetection(video) {
+            const detectorConfig = { modelType: poseDetection.movenet.modelType.MULTIPOSE_LIGHTNING };
             const detector = await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet, detectorConfig);
-            console.log('MoveNet Model Loaded');
+            console.log('MoveNet Multipose Model Loaded');
 
             async function detectFrame() {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
 
                 const poses = await detector.estimatePoses(video);
-                poses.forEach(pose => {
-                    // Draw keypoints and bounding boxes
-                    drawPose(pose);
+                poses.forEach((pose, index) => {
+                    // Draw keypoints and bounding boxes with augmented data
+                    drawPoseWithAugmentedData(pose, index);
                 });
 
                 requestAnimationFrame(detectFrame);
@@ -114,7 +113,7 @@
             detectFrame();
         }
 
-        function drawPose(pose) {
+        function drawPoseWithAugmentedData(pose, index) {
             if (pose.keypoints) {
                 const keypoints = pose.keypoints.filter(kp => kp.score > 0.5);
 
@@ -128,6 +127,21 @@
                     ctx.strokeStyle = "red";
                     ctx.lineWidth = 2;
                     ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
+
+                    // Augmented fake data
+                    const fakeData = {
+                        heartRate: `${Math.floor(Math.random() * 40) + 60} bpm`,
+                        stressLevel: ["Low", "Moderate", "High"][Math.floor(Math.random() * 3)],
+                        emotion: ["Happy", "Neutral", "Anxious"][Math.floor(Math.random() * 3)],
+                    };
+
+                    // Display augmented data
+                    ctx.fillStyle = "white";
+                    ctx.font = "14px Arial";
+                    ctx.fillText(`Person ${index + 1}`, minX, minY - 55);
+                    ctx.fillText(`Heart Rate: ${fakeData.heartRate}`, minX, minY - 40);
+                    ctx.fillText(`Stress Level: ${fakeData.stressLevel}`, minX, minY - 25);
+                    ctx.fillText(`Emotion: ${fakeData.emotion}`, minX, minY - 10);
                 }
 
                 // Draw keypoints
