@@ -20,8 +20,8 @@
         }
         .container {
             position: relative;
-            width: 1200px; /* Increased width */
-            height: 675px; /* Increased height to maintain 16:9 aspect ratio */
+            width: 1200px;
+            height: 675px;
             max-width: 100%;
             border: 2px solid #fff;
         }
@@ -52,7 +52,7 @@
     <div class="container">
         <!-- Embedded YouTube Video -->
         <iframe 
-            src="https://www.youtube.com/embed/VVBU63T23j8?autoplay=1&mute=1"
+            src="https://www.youtube.com/embed/3LXQWU67Ufk?autoplay=1&mute=1"
             title="YouTube Live Stream"
             frameborder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -60,7 +60,7 @@
         </iframe>
 
         <!-- Captured Video Stream -->
-        <video id="capturedVideo" autoplay muted playsinline></video>
+        <video id="capturedVideo" autoplay muted playsinline style="display: none;"></video>
 
         <!-- Overlay Canvas -->
         <canvas id="overlay"></canvas>
@@ -80,6 +80,7 @@
 
         async function startScreenCapture() {
             try {
+                // Request user to capture a specific Chrome tab or application window
                 const stream = await navigator.mediaDevices.getDisplayMedia({
                     video: {
                         width: 1920, // Higher resolution for better detection
