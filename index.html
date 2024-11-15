@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Motion Detection Overlay</title>
+    <title>Real-Time People Detection</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -18,6 +18,7 @@
         }
         h1 {
             color: #fff;
+            margin-bottom: 20px;
         }
         .container {
             position: relative;
@@ -25,105 +26,95 @@
             max-width: 100%;
             height: 450px;
         }
-        iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-        canvas {
+        iframe, video, canvas {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            pointer-events: none;
+        }
+        canvas {
             z-index: 10;
+            pointer-events: none;
+        }
+        iframe {
+            z-index: 1;
         }
     </style>
 </head>
 <body>
-    <h1>Motion Detection Overlay on Embedded Video</h1>
+    <h1>People Detection Overlay</h1>
     <div class="container">
         <!-- Embedded YouTube Video -->
         <iframe 
             src="https://www.youtube.com/embed/h2HXup8nA1I?autoplay=1&mute=1"
-            title="YouTube video player"
+            title="YouTube Live Stream"
             frameborder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowfullscreen>
         </iframe>
 
-        <!-- Canvas Overlay -->
+        <!-- Hidden Video Element (Proxy for Detection) -->
+        <video id="video" autoplay muted playsinline></video>
+
+        <!-- Overlay Canvas -->
         <canvas id="overlay"></canvas>
     </div>
 
-    <!-- TensorFlow.js and Pose Detection -->
+    <!-- TensorFlow.js and Object Detection -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
     <script>
+        const video = document.getElementById('video');
         const canvas = document.getElementById('overlay');
         const ctx = canvas.getContext('2d');
 
-        // Set the canvas size to match the iframe's dimensions
         canvas.width = canvas.parentElement.clientWidth;
         canvas.height = canvas.parentElement.clientHeight;
 
-        // Load Pose Detection Model
-        async function loadPoseModel() {
-            const detectorConfig = {
-                modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
-            };
-            const detector = await poseDetection.createDetector(
-                poseDetection.SupportedModels.MoveNet,
-                detectorConfig
-            );
-            return detector;
+        async function setupCamera() {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { width: 800, height: 450 },
+            });
+            video.srcObject = stream;
+            return new Promise((resolve) => {
+                video.onloadedmetadata = () => resolve(video);
+            });
         }
 
-        // Simulate Pose Detection on Canvas Overlay
-        async function simulateTracking(detector) {
-            const fakeData = [
-                { x: 100, y: 100, info: "Heart Rate: 75 bpm" },
-                { x: 300, y: 200, info: "Stress Level: Moderate" },
-                { x: 500, y: 350, info: "Emotion: Happy" },
-            ];
+        async function detectPeople() {
+            const model = await cocoSsd.load();
+            console.log('Model Loaded');
 
-            function drawFakeInfo(x, y, info) {
-                ctx.fillStyle = "rgba(255, 0, 0, 0.8)";
-                ctx.fillRect(x, y, 150, 50);
-                ctx.fillStyle = "#fff";
-                ctx.font = "14px Arial";
-                ctx.fillText(info, x + 10, y + 25);
-            }
-
-            function renderOverlay() {
+            function detectFrame() {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                // Fake Tracking Data
-                fakeData.forEach(({ x, y, info }) => {
-                    drawFakeInfo(x, y, info);
+                model.detect(video).then((predictions) => {
+                    predictions.forEach((prediction) => {
+                        if (prediction.class === 'person' && prediction.score > 0.5) {
+                            const [x, y, width, height] = prediction.bbox;
+                            ctx.strokeStyle = 'red';
+                            ctx.lineWidth = 2;
+                            ctx.strokeRect(x, y, width, height);
+
+                            ctx.fillStyle = 'red';
+                            ctx.font = '16px Arial';
+                            ctx.fillText(
+                                `Person (${Math.round(prediction.score * 100)}%)`,
+                                x,
+                                y > 10 ? y - 5 : y + 15
+                            );
+                        }
+                    });
                 });
 
-                // Update fake positions for movement
-                fakeData.forEach((point) => {
-                    point.x += (Math.random() - 0.5) * 10;
-                    point.y += (Math.random() - 0.5) * 10;
-
-                    // Keep points within bounds
-                    point.x = Math.max(0, Math.min(canvas.width - 150, point.x));
-                    point.y = Math.max(0, Math.min(canvas.height - 50, point.y));
-                });
-
-                requestAnimationFrame(renderOverlay);
+                requestAnimationFrame(detectFrame);
             }
 
-            renderOverlay();
+            detectFrame();
         }
 
-        (async () => {
-            const detector = await loadPoseModel();
-            simulateTracking(detector);
-        })();
+        setupCamera().then(detectPeople);
     </script>
 </body>
 </html>
