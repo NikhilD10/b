@@ -14,39 +14,43 @@
     <!-- Include the Face-api.js library -->
     <script src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
 
-    <!-- Your JavaScript code -->
+    <!-- Custom JavaScript -->
     <script>
-        const video = document.getElementById('video');
         const status = document.getElementById('status');
+        const video = document.getElementById('video');
         const overlay = document.getElementById('overlay');
         const ctx = overlay.getContext('2d');
 
-        // Start the video stream
         async function startVideo() {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
-            video.srcObject = stream;
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+                video.srcObject = stream;
+            } catch (err) {
+                console.error("Error accessing webcam:", err);
+                status.textContent = "Error accessing webcam.";
+            }
         }
 
-        // Initialize Face-api.js
         async function init() {
             try {
                 status.textContent = "Loading models...";
+                console.log("Loading models...");
                 await faceapi.nets.tinyFaceDetector.loadFromUri('./models');
+                console.log("TinyFaceDetector loaded.");
                 await faceapi.nets.ageGenderNet.loadFromUri('./models');
+                console.log("AgeGenderNet loaded.");
+
                 status.textContent = "Models loaded. Starting video...";
                 startVideo();
 
                 video.addEventListener('play', () => {
                     overlay.width = video.videoWidth;
                     overlay.height = video.videoHeight;
-                    status.textContent = "Detecting faces...";
 
-                    // Run detection in a loop
                     setInterval(async () => {
                         const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions()).withAgeAndGender();
                         ctx.clearRect(0, 0, overlay.width, overlay.height);
-                        
-                        // Draw detections
+
                         detections.forEach(detection => {
                             const box = detection.detection.box;
                             const { age, gender } = detection;
@@ -56,13 +60,13 @@
 
                             ctx.font = '16px Arial';
                             ctx.fillStyle = 'white';
-                            ctx.fillText(`Age: ${Math.round(age)} Gender: ${gender}`, box.x, box.y - 10);
+                            ctx.fillText(`Age: ${Math.round(age)}, Gender: ${gender}`, box.x, box.y - 10);
                         });
                     }, 100);
                 });
             } catch (err) {
                 console.error("Error initializing Face-api.js:", err);
-                status.textContent = "Error loading models. Check console for details.";
+                status.textContent = "Error loading models. Check console.";
             }
         }
 
