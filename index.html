@@ -3,64 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Face Recognition Test</title>
+    <title>Debugging Face Recognition</title>
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
 </head>
 <body>
-    <h1>Facial Recognition Gatekeeper</h1>
+    <h1>Face Recognition Debugging</h1>
     <p id="status">Initializing...</p>
     <video id="video" autoplay muted playsinline></video>
-    <canvas id="overlay"></canvas>
-
-    <!-- Load Face-api.js -->
-    <script src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
 
     <script>
         const status = document.getElementById('status');
         const video = document.getElementById('video');
-        const overlay = document.getElementById('overlay');
-        const ctx = overlay.getContext('2d');
-
-        async function startVideo() {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
-            video.srcObject = stream;
-        }
 
         async function init() {
             try {
-                status.textContent = "Loading models...";
                 console.log("Loading models...");
+                status.textContent = "Loading models...";
                 await faceapi.nets.tinyFaceDetector.loadFromUri('./models');
                 console.log("TinyFaceDetector loaded.");
                 await faceapi.nets.ageGenderNet.loadFromUri('./models');
                 console.log("AgeGenderNet loaded.");
 
-                status.textContent = "Models loaded. Starting video...";
-                startVideo();
+                status.textContent = "Starting video...";
+                console.log("Starting webcam...");
+                const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+                video.srcObject = stream;
 
                 video.addEventListener('play', () => {
-                    overlay.width = video.videoWidth;
-                    overlay.height = video.videoHeight;
-
-                    setInterval(async () => {
-                        const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions()).withAgeAndGender();
-                        ctx.clearRect(0, 0, overlay.width, overlay.height);
-
-                        detections.forEach(detection => {
-                            const box = detection.detection.box;
-                            const { age, gender } = detection;
-                            ctx.strokeStyle = 'red';
-                            ctx.lineWidth = 2;
-                            ctx.strokeRect(box.x, box.y, box.width, box.height);
-
-                            ctx.font = '16px Arial';
-                            ctx.fillStyle = 'white';
-                            ctx.fillText(`Age: ${Math.round(age)}, Gender: ${gender}`, box.x, box.y - 10);
-                        });
-                    }, 100);
+                    console.log("Video is playing.");
                 });
             } catch (err) {
-                console.error("Error initializing Face-api.js:", err);
-                status.textContent = "Error loading models. Check console.";
+                console.error("Initialization error:", err);
+                status.textContent = "Initialization failed. Check console.";
             }
         }
 
