@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Facial Recognition Gatekeeper</title>
+    <title>Face Recognition Test</title>
 </head>
 <body>
     <h1>Facial Recognition Gatekeeper</h1>
@@ -11,10 +11,9 @@
     <video id="video" autoplay muted playsinline></video>
     <canvas id="overlay"></canvas>
 
-    <!-- Include the Face-api.js library -->
+    <!-- Load Face-api.js -->
     <script src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
 
-    <!-- Custom JavaScript -->
     <script>
         const status = document.getElementById('status');
         const video = document.getElementById('video');
@@ -22,13 +21,8 @@
         const ctx = overlay.getContext('2d');
 
         async function startVideo() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
-                video.srcObject = stream;
-            } catch (err) {
-                console.error("Error accessing webcam:", err);
-                status.textContent = "Error accessing webcam.";
-            }
+            const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+            video.srcObject = stream;
         }
 
         async function init() {
