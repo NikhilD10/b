@@ -4,70 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Facial Recognition Gatekeeper</title>
-    <script src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            background-color: #000;
-            color: #fff;
-            margin: 0;
-            padding: 0;
-        }
-        #video, #overlay {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-        }
-        #video {
-            width: 640px;
-            height: 480px;
-            border: 2px solid #fff;
-        }
-        #overlay {
-            width: 640px;
-            height: 480px;
-        }
-        #message {
-            margin-top: 20px;
-        }
-        #artistStatement {
-            display: none;
-            margin-top: 50px;
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid #fff;
-        }
-    </style>
 </head>
 <body>
     <h1>Facial Recognition Gatekeeper</h1>
-    <p id="message">Initializing...</p>
+    <p id="status">Initializing...</p>
     <video id="video" autoplay muted></video>
     <canvas id="overlay"></canvas>
-    <div id="artistStatement">
-        <h2>Artist's Statement</h2>
-        <p>
-            This project explores the ethical tensions surrounding autonomy and control. Through facial recognition, the gatekeeper system
-            symbolizes how external forces dictate access and ownership of the self, much like the cases of Cassandra (teenage autonomy),
-            Terri Schiavo (non-conscious patients), and clinical trials (Pfizer in Nigeria). By arbitrarily allowing or denying access,
-            the system questions whether we truly own ourselves when our identities are reduced to data points manipulated by others.
-        </p>
-    </div>
 
+    <!-- Face-api.js from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
+
+    <!-- Your JavaScript Code -->
     <script>
-        const directory = [
-            { name: "John Doe", age: 17 },
-            { name: "Jane Smith", age: 19 },
-            { name: "Alex Brown", age: 21 },
-        ];
-
         const video = document.getElementById('video');
-        const overlay = document.getElementById('overlay');
-        const ctx = overlay.getContext('2d');
-        const message = document.getElementById('message');
-        const artistStatement = document.getElementById('artistStatement');
+        const status = document.getElementById('status');
 
         async function startVideo() {
             const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
@@ -75,67 +25,17 @@
         }
 
         async function init() {
-            await faceapi.nets.tinyFaceDetector.loadFromUri('/models'); // Adjust path to model folder
-            await faceapi.nets.ageGenderNet.loadFromUri('/models');
-
+            status.textContent = "Loading models...";
+            await faceapi.nets.tinyFaceDetector.loadFromUri('./models');
+            await faceapi.nets.ageGenderNet.loadFromUri('./models');
+            status.textContent = "Models loaded. Starting video...";
             startVideo();
 
-            video.addEventListener('play', async () => {
-                overlay.width = video.videoWidth;
-                overlay.height = video.videoHeight;
-
-                const randomFitness = () => Math.random() > 0.5;
-
+            video.addEventListener('play', () => {
+                status.textContent = "Detecting faces...";
                 setInterval(async () => {
                     const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions()).withAgeAndGender();
-
-                    ctx.clearRect(0, 0, overlay.width, overlay.height);
-
-                    if (detections.length > 0) {
-                        detections.forEach(detection => {
-                            const { age, gender } = detection;
-                            const box = detection.detection.box;
-
-                            // Simulate directory match
-                            const matchedPerson = directory[Math.floor(Math.random() * directory.length)];
-
-                            // Decision logic
-                            const isOldEnough = matchedPerson.age >= 18;
-                            const isFit = randomFitness();
-                            const accessGranted = isOldEnough && isFit;
-
-                            ctx.strokeStyle = "red";
-                            ctx.lineWidth = 2;
-                            ctx.strokeRect(box.x, box.y, box.width, box.height);
-
-                            ctx.fillStyle = "white";
-                            ctx.font = "14px Arial";
-                            ctx.fillText(`Age Detected: ${Math.round(age)}`, box.x, box.y - 10);
-                            ctx.fillText(`Matched Name: ${matchedPerson.name}`, box.x, box.y + box.height + 20);
-                            ctx.fillText(
-                                `Access: ${accessGranted ? "Granted" : isOldEnough ? "Denied (Unfit)" : "Denied (Underage)"}`,
-                                box.x,
-                                box.y + box.height + 40
-                            );
-
-                            // Update message
-                            message.textContent = accessGranted
-                                ? "Access Granted! Welcome."
-                                : isOldEnough
-                                ? "Access Denied: You are deemed unfit."
-                                : "Access Denied: You must be 18 or older.";
-
-                            // Show artist's statement if access granted
-                            if (accessGranted) {
-                                artistStatement.style.display = "block";
-                            } else {
-                                artistStatement.style.display = "none";
-                            }
-                        });
-                    } else {
-                        message.textContent = "No face detected. Please ensure your face is visible.";
-                        artistStatement.style.display = "none";
-                    }
+                    console.log(detections);
                 }, 100);
             });
         }
